@@ -26,4 +26,5 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 HEADERS += \
     xmlparser.h \
-    tag.h
+    tag.h \
+    resources.h

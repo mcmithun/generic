@@ -3,15 +3,46 @@
 #include <sstream>
 #include <unistd.h>
 
+std::string spacer = " ";
+size_t MAXSIZE = 65536;
+
 XmlParser::XmlParser()
 {
 
 }
 
+std::string XmlParser::getStringLital(const std::string &str)
+{
+    std::ostringstream ss;
+    ss << str;
+    return  ss.str();
+}
+
+std::string XmlParser::getTagName(const std::string &xml, size_t &ipos, const std::string &fmt="<%[^ >]")
+{
+    char tagName[16] = "";
+    sscanf(xml.substr(ipos).c_str(), fmt.c_str(), tagName);
+    return std::string(tagName);
+}
+
+void XmlParser::getAttributesFilledInTag(const std::string &tagline, const std::string &fmt, Tag* &tag)
+{
+    char attributePart[128];
+    sscanf(tagline.c_str(), fmt.c_str(), attributePart);
+
+    std::stringstream sAttributePart(attributePart);
+    std::string segment = "";
+    // Using string stream get the data to attributelist.
+    while(std::getline(sAttributePart, segment, ' ')){
+        char attribute[10], value[20];
+        sscanf(segment.c_str(), "%[^=]=\"%[^\"]\"", attribute, value);
+        tag->mAttributeValueList.push_back(std::pair<std::string, std::string>(attribute, value));
+    }
+}
+
 void XmlParser::getSpaceWithEqualsRemoved(std::string &tofmt, const std::string &toFindreplace, const std::string &rWith)
 {
     // **** " = " and replace with "=" else in parsing attr, will have issues.
-
     size_t getpos;
     while(getpos != std::string::npos){
         getpos = tofmt.find(toFindreplace);
@@ -21,93 +52,124 @@ void XmlParser::getSpaceWithEqualsRemoved(std::string &tofmt, const std::string 
     }
 }
 
-void XmlParser::LoadFromXml(std::string &xml)
+void XmlParser::getChildrenFilled(const std::string &xml, Tag* &tag)
 {
+    if(!tag)
+        return;
+    //std::cout<<"Going to fetch the data for :"<<tag->mTagName<<std::endl;
+
+    //tag->start, tag->end;
+    size_t start = tag->mTagPosition->start;
+    size_t end = tag->mTagPosition->end;
+
+    // find > for the current tagName
+    size_t ipos = xml.find_first_of(">", start)+1;
+
+    while(ipos < end) { // this condition is difficult
+        Tag *child = new Tag;
+        // check for children
+        // find start and end and assign to tag
+        child->mTagPosition->start = xml.find("<" , ipos);
+        std::string tagName = getTagName(xml, ipos);
+        child->mTagName = tagName;
+        std::string endTagName = "</";
+        endTagName.append(tagName);
+        endTagName.append(">");
+        child->mTagPosition->end = xml.find(endTagName.c_str(), child->mTagPosition->start);
+
+        if(child->mTagPosition->start == std::string::npos || child->mTagPosition->end == std::string::npos){
+            std::cout << "Invalid Child for " << child->mTagName<<" , "<< endTagName<< std::endl;
+            return;
+        }
+
+        std::string ltagLine = xml.substr(child->mTagPosition->start, child->mTagPosition->end);
+        getAttributesFilledInTag(ltagLine, std::string("<"+tagName+" %[^>]>"), child);
+
+        // Check the validity that it comes under this tag
+        if(child->mTagPosition->end < end){
+            // and add to vector under tag
+            child->parentTag = tag;
+            getChildrenFilled(xml, child);
+            tag->mChildTags.push_back(child);
+        }
+        // Set position updated, with nth level of child tags
+        // Jumping from end of tag 1 to start of tag 2 up to n
+        // It will skip all other children of current child tags
+        ipos = child->mTagPosition->end + endTagName.length();
+        //std::cout   <<" tagNameStr:"<< child->mTagName <<"("<<child->mTagPosition->start <<","<<child->mTagPosition->end<< ")"<<std::endl;
+    }
+
+    return;
+}
+
+std::vector<Tag*> XmlParser::CreateXMLDoc(std::string &xml)
+{
+    // Correct the formats in data
     getSpaceWithEqualsRemoved(xml, " = ", "=");
     getSpaceWithEqualsRemoved(xml, " =", "=");
     getSpaceWithEqualsRemoved(xml, "= ", "=");
-    // space before = removed
 
-    // find < and > positions
-    // find end of tag </
-    // push into list of Tags
-    // List is something like
-    // [0] tag1->tag2-tag3
-    // [1] tag2->tag4
-    // [2] tag5
-    //<tag1 value="HelloWorld"><tag2 name="Name1"></tag2></tag1><tag3 name="abcdef"></tag3>
+    //first tag, propably root tag, if its end tag is same as xml length
+    size_t ipos = 0;
+    decltype (ipos) start=ipos, end=0, tagNameEnd;
 
-    std::size_t ipos = 0, lastTagLength = 0;
-    decltype (ipos) start=0, tagNameEnd=0, end=0, initialEndPos=0;
-    std::string tagNameStr = "";
-    std::string endTagName ="</";
-    do{
-        int count = 0; //means it is a parent tag
-        do{
-            start = xml.find("<", ipos);
+    while(ipos < xml.length()){ // Most propably there ll be only one tag
+        ipos = xml.find_first_of("<", ipos);
+        if(ipos == std::string::npos || ipos > MAXSIZE){
+            std::cout<<"ipos gone out of boundry."<<std::endl;
+            break;
+        }
+        std::string tagNameStr = "";
+        std::string endTagNameStr ="</";
 
-            Tag* tag = new Tag();
-            tag->next = nullptr;
+        tagNameStr = getTagName(xml, ipos);
+        endTagNameStr.append(tagNameStr);
+        endTagNameStr.append(">");
+        end = xml.find(endTagNameStr.c_str(), ipos); // end of this tag
 
-            char tagName[16] = "";
-            sscanf(xml.substr(ipos).c_str(), "<%[^ >]", tagName);
-            tagNameStr = std::string(tagName);
-            endTagName += tagNameStr;
-            end = xml.find(endTagName.c_str(), ipos); // end of this tag
+        auto tag = new Tag();
+        tag->mTagPosition->start = start;
+        tag->mTagPosition->end = end;
 
-            // this is start and end of a tag, checking its validity
-            if (start != std::string::npos && end != std::string::npos){
-                tag->mTagName.append(tagNameStr);
+        // find > for the current tagName
+        tagNameEnd = xml.find_first_of(">", ipos)+1;
 
-                // find > for the tagName
-                tagNameEnd = xml.find_first_of(">", ipos)+1;
+        // extract attribute data - get substring till end of line >; just after attributes.
+        std::string ltagLine = xml.substr(ipos, tagNameEnd);
+        getAttributesFilledInTag(ltagLine, std::string("<"+tagNameStr+" %[^>]>"), tag);
+        tag->mTagName = tagNameStr;
+        mRootTags.push_back(tag); // need to pushback a new Tag??
 
-                // extract attribute data - get substring till end of line >; just after attributes.
-                std::string ltagLine = xml.substr(ipos, tagNameEnd);
-                char attributePart[128];
-                sscanf(ltagLine.c_str(), std::string("<"+tagNameStr+" %[^>]>").c_str(), attributePart );
-
-                std::stringstream sAttributePart(attributePart);
-                std::string segment = "";
-                // Using string stream get the data to attributelist.
-                while(std::getline(sAttributePart, segment, ' ')){
-                    char attribute[10], value[20];
-                    sscanf(segment.c_str(), "%[^=]=\"%[^\"]\"", attribute, value);
-                    tag->mAttributeValueList.push_back(std::pair<std::string, std::string>(attribute, value));
-                }
-            }
-            ipos = tagNameEnd; // this will push the pointer for start after, '>'.
-            lastTagLength = endTagName.length()+1;
-            tagNameStr = "";
-            endTagName = "</";
-            initialEndPos = initialEndPos > end ? initialEndPos : end;
-            if(!count){
-                mListOfTags.push_back(new Tag(*tag));
-            }
-            else {
-                auto tagObj = mListOfTags.back();
-                while(tagObj->next != nullptr){
-                    tagObj = tagObj->next;
-                }
-                if(tagObj->next == nullptr){ // make sure that this is the final tag in the linked list
-                    tagObj->next = new Tag(*tag);
-                    tagObj->next->next = nullptr;
-                }
-            }
-            delete tag;
-            count++;
-        } while((end-ipos) > lastTagLength);
-        ipos = initialEndPos+lastTagLength;
-        tagNameStr = "";
-        endTagName ="</";
-    } while (ipos+lastTagLength < xml.length()-1);
-
-    PrintListOftags();
+        ipos = end + endTagNameStr.length() + 1;
+        //std::cout<<"[" << ipos << ","<< end <<"]"<<xml.length()<<std::endl; // Confirm the positions
+    }
+    // start parsing the root or parent tags, propably a single time loop.
+    // Else it means multiple root tags.
+    for(auto &a: mRootTags){
+        getChildrenFilled(xml, a);
+    }
+    return mRootTags;
 }
 
-void XmlParser::PrintListOftags()
+std::vector<Tag*> XmlParser::GetRootTags() const
 {
-    for(auto a: mListOfTags){
+    return mRootTags;
+}
+
+void XmlParser::getChildPrinted(Tag* &tag) const
+{
+    spacer.append(" ");
+    if(!tag) return;
+    for(auto a: tag->mChildTags){
+        std::cout<<spacer<<a->ToString()<<std::endl;
+        getChildPrinted(a);
+    }
+}
+
+void XmlParser::PrintListOftags(std::vector<Tag*> rootTags)
+{
+    for(auto a: rootTags){
         std::cout<<a->ToString()<<std::endl;
+        getChildPrinted(a);
     }
 }

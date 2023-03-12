@@ -8,47 +8,40 @@ auto operator<<(std::ostream& stream, std::pair<T,Y> const& p) -> std::ostream&
     return stream;
 }
 
-Tag::Tag(): next(nullptr), mTagName("")
+auto operator<<(std::ostream& stream, std::vector<Tag*> const& p) -> std::ostream&
+{
+    for(auto a : p)
+        stream <<'<' << a->mTagPosition->start <<","<< a->mTagPosition->end << "; " << a->mTagName << '>';
+    return stream;
+}
+
+Tag::Tag(): mTagPosition(std::make_shared<TagPos>()), mTagName("")
 {
 
 }
-Tag::Tag(const Tag& obj): next(nullptr), mTagName("")
+
+Tag::Tag(const Tag& obj): mTagPosition(std::make_shared<TagPos>())
+                        , mTagName("")
 {
     mTagName = obj.mTagName;
     mAttributeValueList = obj.mAttributeValueList;
-    if (obj.next == nullptr) {
-        next = nullptr;
-    } else {
-        next = new Tag(*(obj.next));
-    }
+
 }
 Tag& Tag::operator=(const Tag &obj)
 {
-    next = nullptr;
     mTagName = "";
     if (this != &obj) {
         mTagName = obj.mTagName;
         mAttributeValueList = obj.mAttributeValueList;
-        if (obj.next == nullptr) {
-            next = nullptr;
-        } else {
-            if (next == nullptr) {
-                next = new Tag();
-            }
-            *next = *(obj.next);
-        }
+        mChildTags = obj.mChildTags;
     }
     return *this;
 }
 std::string Tag::ToString()
 {
-    std::string buffer;
+    std::string buffer ="";
     for(auto a : mAttributeValueList){
-        buffer.append("("+a.first + " : "+ a.second+")");
+        buffer.append(" attr("+a.first + " : "+ a.second+");");
     }
-    if(next != nullptr){
-        buffer.append(next->ToString());
-    }
-
-    return std::string(mTagName+":"+buffer);
+    return std::string(""+mTagName+": "+buffer+"\n");
 }
