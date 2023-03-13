@@ -69,7 +69,7 @@ void XmlParser::getChildrenFilled(const std::string &xml, Tag* &tag)
         Tag *child = new Tag;
         // check for children
         // find start and end and assign to tag
-        child->mTagPosition->start = xml.find("<" , ipos);
+        child->mTagPosition->start = xml.find("<", ipos);
         std::string tagName = getTagName(xml, ipos);
         child->mTagName = tagName;
         std::string endTagName = "</";
@@ -83,6 +83,7 @@ void XmlParser::getChildrenFilled(const std::string &xml, Tag* &tag)
         }
 
         std::string ltagLine = xml.substr(child->mTagPosition->start, child->mTagPosition->end);
+
         getAttributesFilledInTag(ltagLine, std::string("<"+tagName+" %[^>]>"), child);
 
         // Check the validity that it comes under this tag
@@ -113,7 +114,7 @@ std::vector<Tag*> XmlParser::CreateXMLDoc(std::string &xml)
     size_t ipos = 0;
     decltype (ipos) start=ipos, end=0, tagNameEnd;
 
-    while(ipos < xml.length()){ // Most propably there ll be only one tag
+    while(ipos < xml.length() || end < xml.length()){ // Most propably there ll be only one tag
         ipos = xml.find_first_of("<", ipos);
         if(ipos == std::string::npos || ipos > MAXSIZE){
             std::cout<<"ipos gone out of boundry."<<std::endl;
@@ -128,20 +129,24 @@ std::vector<Tag*> XmlParser::CreateXMLDoc(std::string &xml)
         end = xml.find(endTagNameStr.c_str(), ipos); // end of this tag
 
         auto tag = new Tag();
-        tag->mTagPosition->start = start;
+        tag->mTagPosition->start = ipos;
         tag->mTagPosition->end = end;
+
+        //std::cout<<"["<<tag->mTagPosition->start<<","<<tag->mTagPosition->end<<"]"<<tagNameStr<<" & "<< endTagNameStr <<std::endl;
 
         // find > for the current tagName
         tagNameEnd = xml.find_first_of(">", ipos)+1;
 
         // extract attribute data - get substring till end of line >; just after attributes.
         std::string ltagLine = xml.substr(ipos, tagNameEnd);
-        getAttributesFilledInTag(ltagLine, std::string("<"+tagNameStr+" %[^>]>"), tag);
+        auto isAttrAvailable = ltagLine.find("<"+tagNameStr+">", 0);
+        if(isAttrAvailable!=0)
+            getAttributesFilledInTag(ltagLine, std::string("<"+tagNameStr+" %[^>]>"), tag);
         tag->mTagName = tagNameStr;
         mRootTags.push_back(tag); // need to pushback a new Tag??
 
-        ipos = end + endTagNameStr.length() + 1;
-        //std::cout<<"[" << ipos << ","<< end <<"]"<<xml.length()<<std::endl; // Confirm the positions
+        ipos = end + endTagNameStr.length();
+        //std::cout<< ipos<<"[" <<start << ","<< end <<"]"<<xml.length()<<" ->"<<tag->mTagName<<std::endl; // Confirm the positions
     }
     // start parsing the root or parent tags, propably a single time loop.
     // Else it means multiple root tags.

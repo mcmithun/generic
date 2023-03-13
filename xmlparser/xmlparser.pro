@@ -17,7 +17,8 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
         main.cpp \
     xmlparser.cpp \
-    tag.cpp
+    tag.cpp \
+    xmldocquery.cpp
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
@@ -27,4 +28,5 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 HEADERS += \
     xmlparser.h \
     tag.h \
-    resources.h
+    resources.h \
+    xmldocquery.h
