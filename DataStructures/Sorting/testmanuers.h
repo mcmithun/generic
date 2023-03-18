@@ -21,27 +21,27 @@ public:
     // Near future tuple shall be used, to incorporate the comparision
     // along with start and end, unfortunately after c++17 comparison operators
     // for tuple goes deprecated :( .
-    bool operator>(TestManuers &rhs){
+    bool operator>(const TestManuers &rhs){
         return (this->uid > rhs.uid);
     }
 
-    bool operator>=(TestManuers &rhs){
+    bool operator>=(const TestManuers &rhs){
         return (this->uid >= rhs.uid);
     }
 
-    bool operator<(TestManuers &rhs){
+    bool operator<(const TestManuers &rhs){
         return (this->uid < rhs.uid);
     }
 
-    bool operator<=(TestManuers &rhs){
+    bool operator<=(const TestManuers &rhs){
         return (this->uid <= rhs.uid);
     }
 
-    bool operator==(TestManuers &rhs){
+    bool operator==(const TestManuers &rhs){
         return (this->uid == rhs.uid);
     }
 
-    bool operator!=(TestManuers &rhs){
+    bool operator!=(const TestManuers &rhs){
         return (this->uid != rhs.uid);
     }
 
