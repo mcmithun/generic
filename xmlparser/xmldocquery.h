@@ -1,6 +1,7 @@
 #ifndef XMLDOCQUERY_H
 #define XMLDOCQUERY_H
 #include <string>
+#include <iostream>
 
 /*
 tag1~value            "value"
@@ -12,8 +13,9 @@ attributes will be appended with "~"
 
 class XmlDocQuery
 {
+    std::string mQueryStr;
 public:
-    XmlDocQuery(const std::string &queryStr);
+    explicit XmlDocQuery(const std::string &queryStr);
 };
 
 #endif // XMLDOCQUERY_H
