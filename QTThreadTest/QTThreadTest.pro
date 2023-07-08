@@ -29,13 +29,18 @@ SOURCES += \
         userinterface.cpp \
     stdthreadqt.cpp \
     navi.cpp \
-    subscription.cpp
+    subscription.cpp \
+    Server/datalistener.cpp \
+    mixin.cpp
 
 HEADERS += \
         userinterface.h \
     stdthreadqt.h \
     navi.h \
-    subscription.h
+    subscription.h \
+    Server/datalistener.h \
+    Header/header.h \
+    mixin.h
 
 FORMS += \
         userinterface.ui

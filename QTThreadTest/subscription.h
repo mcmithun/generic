@@ -25,7 +25,7 @@ public:
 
     // Used by the client class.
     // Example:
-    // MyClass *mo = new MyClass(o)
+    // MyClass *mo = new MyClass(sub)
     // and in
     // MyClass::func() {... sub->notify() ...}
     void notify(const T* data) {

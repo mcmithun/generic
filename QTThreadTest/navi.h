@@ -1,6 +1,7 @@
 #ifndef NAVI_H
 #define NAVI_H
 #include "subscription.h"
+#include "Server/datalistener.h"
 
 class Navi
 {
